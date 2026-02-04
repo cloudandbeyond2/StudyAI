@@ -1,9 +1,9 @@
 //BRAND
 export const appName = 'AIstudy';
 export const companyName = 'AIstudy by traininglabs';
-export const websiteURL = 'https://app.valoteam.com';
+export const websiteURL = 'https://ai-study-infilabs.vercel.app';
 export const serverURL = import.meta.env.PROD
-  ? 'https://aistudy.azurewebsites.net'
+  ? 'https://study-ai-backend.vercel.app'
   : 'http://localhost:5001';
 export const appLogo = '/logo.png';
 export const razorpayEnabled = true;
