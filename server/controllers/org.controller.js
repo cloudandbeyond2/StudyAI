@@ -405,6 +405,7 @@ export const getStudentCourses = async (req, res) => {
         }
 
         const department = student.studentDetails?.department;
+        console.log('Fetching courses for student:', { studentId, department, organizationId });
 
         // Get courses assigned to this student, or this department, or all students (empty assignedTo and department)
         const orgCourses = await OrgCourse.find({
@@ -421,9 +422,16 @@ export const getStudentCourses = async (req, res) => {
             ]
         }).sort({ createdAt: -1 });
 
-        // Also fetch AI generated courses for this organization
-        // For now, AI courses are visible to all in the organization
-        const aiCourses = await Course.find({ organizationId }).sort({ createdAt: -1 });
+        // Also fetch AI generated courses with same department filtering logic
+        const aiCourses = await Course.find({
+            organizationId,
+            $or: [
+                { department: department }, // Assigned to their department
+                { $or: [{ department: { $exists: false } }, { department: '' }, { department: null }] } // No department specified (available to all)
+            ]
+        }).sort({ createdAt: -1 });
+
+        console.log('Found courses:', { orgCoursesCount: orgCourses.length, aiCoursesCount: aiCourses.length });
 
         const combined = [...orgCourses, ...aiCourses];
 
@@ -440,18 +448,43 @@ export const getStudentCourses = async (req, res) => {
 export const updateCourse = async (req, res) => {
     const { courseId } = req.params;
     const updates = req.body;
+    console.log('Update course request:', { courseId, updates });
     try {
-        const course = await OrgCourse.findByIdAndUpdate(
+        // Try to update OrgCourse first (manual courses)
+        let course = await OrgCourse.findByIdAndUpdate(
             courseId,
             { ...updates, updatedAt: Date.now() },
             { new: true }
         );
+        console.log('OrgCourse result:', course ? 'Found and updated' : 'Not found');
+
+        // If not found, try updating Course (AI-generated courses)
         if (!course) {
+            console.log('Not found in OrgCourse, trying Course model...');
+            // First check if it exists
+            const existingCourse = await Course.findById(courseId);
+            console.log('Existing AI course check:', existingCourse ? 'Exists' : 'Does not exist');
+
+            if (existingCourse) {
+                course = await Course.findByIdAndUpdate(
+                    courseId,
+                    { ...updates },
+                    { new: true }
+                );
+                if (course) {
+                    console.log('Successfully updated AI course:', course);
+                }
+            }
+        }
+
+        if (!course) {
+            console.log('Course not found in either model');
             return res.status(404).json({ success: false, message: 'Course not found' });
         }
         res.json({ success: true, message: 'Course updated successfully', course });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
+        console.error('Update course error:', error);
+        res.status(500).json({ success: false, message: 'Server error: ' + error.message });
     }
 };
 
