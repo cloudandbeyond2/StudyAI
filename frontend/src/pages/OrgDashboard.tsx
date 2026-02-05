@@ -210,6 +210,7 @@ const OrgDashboard = () => {
     const [newNotice, setNewNotice] = useState({ title: '', content: '', audience: 'all' });
     const [newCourse, setNewCourse] = useState<any>({ title: '', description: '', department: '', topics: [], quizzes: [] });
     const [editCourse, setEditCourse] = useState<any>(null);
+    const [editAICourse, setEditAICourse] = useState<any>(null);
     const [orgSettings, setOrgSettings] = useState<any>(null);
     const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -338,6 +339,33 @@ const OrgDashboard = () => {
             }
         } catch (e) {
             toast({ title: "Error", description: "Failed to update course" });
+        }
+    };
+
+    const handleUpdateAICourse = async () => {
+        if (!editAICourse) return;
+        console.log("Attempting to update AI course:", editAICourse);
+        console.log("Course ID:", editAICourse._id);
+        console.log("Update URL:", `${serverURL}/api/org/course/${editAICourse._id}`);
+
+        try {
+            const res = await axios.put(`${serverURL}/api/org/course/${editAICourse._id}`, {
+                mainTopic: editAICourse.mainTopic,
+                department: editAICourse.department
+            });
+            console.log("Update response:", res.data);
+            if (res.data.success) {
+                toast({ title: "Success", description: "AI Course updated successfully" });
+                setEditAICourse(null);
+                fetchCourses();
+            } else {
+                toast({ title: "Error", description: res.data.message || "Failed to update AI course" });
+            }
+        } catch (e: any) {
+            console.error("Update AI course error:", e);
+            console.error("Error response:", e.response?.data);
+            const errorMessage = e.response?.data?.message || e.message || "Failed to update AI course";
+            toast({ title: "Error", description: errorMessage });
         }
     };
 
@@ -834,7 +862,11 @@ const OrgDashboard = () => {
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-2">
-                                                        {course.topics && <Button variant="ghost" size="sm" onClick={() => setEditCourse({ ...course })}>Edit</Button>}
+                                                        {course.topics ? (
+                                                            <Button variant="ghost" size="sm" onClick={() => setEditCourse({ ...course })}>Edit</Button>
+                                                        ) : course.content ? (
+                                                            <Button variant="ghost" size="sm" onClick={() => setEditAICourse({ ...course })}>Edit</Button>
+                                                        ) : null}
                                                         <Button variant="ghost" size="sm" onClick={() => handleDeleteCourse(course._id)}>
                                                             <Trash2 className="w-4 h-4 text-destructive" />
                                                         </Button>
@@ -949,6 +981,44 @@ const OrgDashboard = () => {
                             onSave={handleUpdateCourse}
                             isEdit
                         />
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit AI Course Dialog */}
+            <Dialog open={!!editAICourse} onOpenChange={(open) => !open && setEditAICourse(null)}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Edit AI-Generated Course</DialogTitle>
+                        <DialogDescription>Update the course title and department assignment</DialogDescription>
+                    </DialogHeader>
+                    {editAICourse && (
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="mainTopic">Course Title</Label>
+                                <Input
+                                    id="mainTopic"
+                                    value={editAICourse.mainTopic || ''}
+                                    onChange={(e) => setEditAICourse({ ...editAICourse, mainTopic: e.target.value })}
+                                    placeholder="Enter course title"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="department">Department (Optional)</Label>
+                                <Input
+                                    id="department"
+                                    value={editAICourse.department || ''}
+                                    onChange={(e) => setEditAICourse({ ...editAICourse, department: e.target.value })}
+                                    placeholder="e.g., Computer Science, Mathematics"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Assign to a specific department or leave empty for all students
+                                </p>
+                            </div>
+                            <Button onClick={handleUpdateAICourse} className="w-full">
+                                Update Course
+                            </Button>
+                        </div>
                     )}
                 </DialogContent>
             </Dialog>

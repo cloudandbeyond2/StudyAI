@@ -6,6 +6,7 @@ const courseSchema = new mongoose.Schema({
   content: { type: String, required: true },
   type: String,
   mainTopic: String,
+  department: String, // Department assignment for filtering
   photo: String,
   date: { type: Date, default: Date.now },
   end: { type: Date, default: Date.now },
