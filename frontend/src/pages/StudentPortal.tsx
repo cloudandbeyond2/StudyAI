@@ -12,6 +12,7 @@ const StudentPortal = () => {
     const [assignments, setAssignments] = useState([]);
     const [notices, setNotices] = useState([]);
     const [courses, setCourses] = useState([]);
+    const [studentInfo, setStudentInfo] = useState<any>(null);
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     const orgId = sessionStorage.getItem('orgId'); // If stored
@@ -19,11 +20,23 @@ const StudentPortal = () => {
 
     useEffect(() => {
         if (orgId && studentId) {
+            fetchStudentInfo();
             fetchCourses();
             fetchAssignments();
             fetchNotices();
         }
     }, []);
+
+    const fetchStudentInfo = async () => {
+        try {
+            const res = await axios.get(`${serverURL}/api/user/${studentId}`);
+            if (res.data.success) {
+                setStudentInfo(res.data.user);
+            }
+        } catch (e) {
+            console.error('Error fetching student info:', e);
+        }
+    };
 
     const fetchCourses = async () => {
         try {
@@ -65,7 +78,15 @@ const StudentPortal = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-gradient bg-gradient-to-r from-primary to-purple-600">Student Portal</h1>
-                    <p className="text-muted-foreground">Welcome back, Scholar!</p>
+                    <p className="text-muted-foreground">
+                        Welcome back, {studentInfo?.mName || 'Scholar'}!
+                        {studentInfo?.studentDetails?.department && (
+                            <span className="ml-2 text-primary font-medium">
+                                • {studentInfo.studentDetails.department}
+                                {studentInfo.studentDetails.section && ` - Section ${studentInfo.studentDetails.section}`}
+                            </span>
+                        )}
+                    </p>
                 </div>
                 <div className="flex gap-2">
                     {/* Placeholder for notifications or profile quick link */}
